@@ -78,6 +78,12 @@ function getCurrentTime() {
   return d.toTimeString().slice(0, 5); // HH:MM
 }
 
+function minutesBetween(t1, t2) {
+  const a = new Date("1970-01-01T" + t1);
+  const b = new Date("1970-01-01T" + t2);
+  return Math.abs((b - a) / 60000);
+}
+
 /* ===== Entry / Exit Logic ===== */
 async function markAttendance() {
   const today = getToday();
@@ -93,6 +99,7 @@ async function markAttendance() {
 
   const snap = await getDoc(attendanceRef);
 
+  /* ===== First scan (ENTRY) ===== */
   if (!snap.exists()) {
     await setDoc(attendanceRef, {
       teacherId: loggedInTeacher.teacherId,
@@ -111,7 +118,17 @@ async function markAttendance() {
 
   const data = snap.data();
 
+  /* ===== Second scan (EXIT) ===== */
   if (!data.exitTime) {
+
+    const diff = minutesBetween(data.entryTime, nowTime);
+
+    if (diff < 2) {
+      msg.textContent = "Please wait at least 2 minutes before exit scan";
+      msg.className = "msg error";
+      return;
+    }
+
     await updateDoc(attendanceRef, {
       exitTime: nowTime,
       updatedAt: serverTimestamp()
@@ -122,14 +139,15 @@ async function markAttendance() {
     return;
   }
 
+  /* ===== More than 2 scans ===== */
   msg.textContent = "Attendance already completed for today";
   msg.className = "msg error";
 }
 
-/* ===== QR handler (UPDATED) ===== */
+/* ===== QR handler ===== */
 async function onScanSuccess(decodedText) {
   try {
-    const cleaned = decodedText.trim();   // ✅ FIX: remove spaces/newlines
+    const cleaned = decodedText.trim();
     const qrData = JSON.parse(cleaned);
 
     if (
@@ -143,8 +161,7 @@ async function onScanSuccess(decodedText) {
       msg.className = "msg error";
     }
 
-  } catch (e) {
-    console.error("QR parse error:", decodedText, e);
+  } catch {
     msg.textContent = "Invalid QR format";
     msg.className = "msg error";
   }
