@@ -93,7 +93,6 @@ async function markAttendance() {
 
   const snap = await getDoc(attendanceRef);
 
-  // First scan = entry
   if (!snap.exists()) {
     await setDoc(attendanceRef, {
       teacherId: loggedInTeacher.teacherId,
@@ -112,7 +111,6 @@ async function markAttendance() {
 
   const data = snap.data();
 
-  // Second scan = exit
   if (!data.exitTime) {
     await updateDoc(attendanceRef, {
       exitTime: nowTime,
@@ -124,15 +122,15 @@ async function markAttendance() {
     return;
   }
 
-  // Already done
   msg.textContent = "Attendance already completed for today";
   msg.className = "msg error";
 }
 
-/* ===== QR handler ===== */
+/* ===== QR handler (UPDATED) ===== */
 async function onScanSuccess(decodedText) {
   try {
-    const qrData = JSON.parse(decodedText);
+    const cleaned = decodedText.trim();   // ✅ FIX: remove spaces/newlines
+    const qrData = JSON.parse(cleaned);
 
     if (
       String(qrData.schoolId) === String(loggedInTeacher.schoolId) &&
@@ -145,7 +143,8 @@ async function onScanSuccess(decodedText) {
       msg.className = "msg error";
     }
 
-  } catch {
+  } catch (e) {
+    console.error("QR parse error:", decodedText, e);
     msg.textContent = "Invalid QR format";
     msg.className = "msg error";
   }
