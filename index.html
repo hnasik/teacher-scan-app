@@ -71,12 +71,12 @@ async function loginTeacher() {
 
     const teacher = snap.docs[0].data();
 
-    // ✅ FIX: use ownerId as schoolId
+    // ? FIX: use ownerId as schoolId
     localStorage.setItem("teacherLogin", JSON.stringify({
       teacherId: teacher.teacherId,
       name: teacher.name,
       teacherClass: teacher.teacherClass,
-      schoolId: teacher.ownerId
+     schoolId: teacher.schoolId
     }));
 
     window.location.href = "teacher-scan.html";
