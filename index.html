@@ -28,11 +28,6 @@ import {
   getDocs 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-import { 
-  getAuth, 
-  signInAnonymously 
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
   authDomain: "school-management-projec-9db7a.firebaseapp.com",
@@ -44,28 +39,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
 const msg = document.getElementById("msg");
 const loginBtn = document.getElementById("loginBtn");
 
-// ---- Anonymous Login ----
-async function ensureAuth(){
-  try{
-    if(!auth.currentUser){
-      await signInAnonymously(auth);
-    }
-  }catch(err){
-    console.error("Auth error:", err);
-    msg.textContent = "Auth failed. Enable Anonymous login in Firebase.";
-    msg.style.color = "red";
-    throw err;
-  }
-}
-
-// ---- Login Logic ----
-async function loginTeacher(){
-
+async function loginTeacher() {
   const teacherId = document.getElementById("teacherId").value.trim();
 
   if(!teacherId){
@@ -77,10 +55,7 @@ async function loginTeacher(){
   msg.textContent = "Checking...";
   msg.style.color = "black";
 
-  try{
-
-    await ensureAuth();
-
+  try {
     const q = query(
       collection(db, "teachers"),
       where("teacherId", "==", teacherId)
@@ -96,28 +71,23 @@ async function loginTeacher(){
 
     const teacher = snap.docs[0].data();
 
-    const loginData = {
+    localStorage.setItem("teacherLogin", JSON.stringify({
       teacherId: teacher.teacherId,
       name: teacher.name,
-      subject: teacher.subject,
       teacherClass: teacher.teacherClass,
       ownerId: teacher.ownerId
-    };
-
-    localStorage.setItem("teacherLogin", JSON.stringify(loginData));
+    }));
 
     window.location.href = "teacher-scan.html";
 
-  }catch(err){
+  } catch(err){
     console.error(err);
-    msg.textContent = "Login failed: " + err.message;
+    msg.textContent = "Login failed";
     msg.style.color = "red";
   }
 }
 
-// Button click
 loginBtn.addEventListener("click", loginTeacher);
-
 </script>
 
 </body>
