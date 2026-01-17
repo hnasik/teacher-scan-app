@@ -4,35 +4,33 @@
 <meta charset="UTF-8">
 <title>Teacher Attendance Scan</title>
 
-<!-- QR Scanner -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    text-align: center;
-    padding: 20px;
-  }
-  h2 { margin-bottom: 5px; }
-  #reader {
-    width: 300px;
-    margin: 20px auto;
-  }
-  .msg {
-    margin-top: 15px;
-    font-size: 16px;
-    font-weight: bold;
-  }
-  .success { color: green; }
-  .error { color: red; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  text-align: center;
+  padding: 20px;
+}
+#reader {
+  width: 300px;
+  margin: 20px auto;
+}
+.msg {
+  margin-top: 15px;
+  font-size: 16px;
+  font-weight: bold;
+}
+.success { color: green; }
+.error { color: red; }
 </style>
 </head>
 
 <body>
 
 <h2>Scan Attendance QR</h2>
-<p>Point your camera at your QR code</p>
+<p>Scan to mark Entry / Exit</p>
 
 <div id="reader"></div>
 <div id="message" class="msg"></div>
@@ -45,6 +43,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  updateDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
@@ -70,37 +69,65 @@ if (!loggedInTeacher) {
 
 const msg = document.getElementById("message");
 
-/* ================= SAVE ATTENDANCE ================= */
-async function saveAttendance() {
-  const today = new Date().toISOString().split("T")[0];
+/* ================= HELPERS ================= */
+function getToday() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getCurrentTime() {
+  const d = new Date();
+  return d.toTimeString().slice(0, 5); // HH:MM
+}
+
+/* ================= ENTRY / EXIT LOGIC ================= */
+async function markAttendance() {
+  const today = getToday();
+  const nowTime = getCurrentTime();
 
   const attendanceRef = doc(
     db,
     "attendance",
-    loggedInTeacher.ownerId,      // schoolId
+    loggedInTeacher.ownerId,
     today,
     loggedInTeacher.teacherId
   );
 
-  const alreadyMarked = await getDoc(attendanceRef);
-  if (alreadyMarked.exists()) {
-    msg.textContent = "Attendance already marked today";
-    msg.className = "msg error";
+  const snap = await getDoc(attendanceRef);
+
+  // -------- FIRST SCAN = ENTRY --------
+  if (!snap.exists()) {
+    await setDoc(attendanceRef, {
+      teacherId: loggedInTeacher.teacherId,
+      teacherName: loggedInTeacher.name,
+      schoolId: loggedInTeacher.ownerId,
+      date: today,
+      entryTime: nowTime,
+      status: "Present",
+      createdAt: serverTimestamp()
+    });
+
+    msg.textContent = "Entry time marked: " + nowTime;
+    msg.className = "msg success";
     return;
   }
 
-  await setDoc(attendanceRef, {
-    teacherId: loggedInTeacher.teacherId,
-    teacherName: loggedInTeacher.name,
-    schoolId: loggedInTeacher.ownerId,
-    date: today,
-    status: "Present",
-    method: "QR",
-    createdAt: serverTimestamp()
-  });
+  const data = snap.data();
 
-  msg.textContent = "Attendance marked successfully";
-  msg.className = "msg success";
+  // -------- SECOND SCAN = EXIT --------
+  if (!data.exitTime) {
+    await updateDoc(attendanceRef, {
+      exitTime: nowTime,
+      updatedAt: serverTimestamp()
+    });
+
+    msg.textContent = "Exit time marked: " + nowTime;
+    msg.className = "msg success";
+    return;
+  }
+
+  // -------- ALREADY COMPLETED --------
+  msg.textContent = "Attendance already completed for today";
+  msg.className = "msg error";
 }
 
 /* ================= QR HANDLER ================= */
@@ -112,7 +139,7 @@ async function onScanSuccess(decodedText) {
       qrData.schoolId === loggedInTeacher.ownerId &&
       qrData.purpose === "teacher-attendance"
     ) {
-      await saveAttendance();
+      await markAttendance();
       html5QrCode.stop();
     } else {
       msg.textContent = "Invalid school QR code";
@@ -129,7 +156,7 @@ async function onScanSuccess(decodedText) {
 const html5QrCode = new Html5Qrcode("reader");
 
 html5QrCode.start(
-  { facingMode: "environment" },   // back camera
+  { facingMode: "environment" },
   { fps: 10, qrbox: 250 },
   onScanSuccess
 ).catch(err => {
