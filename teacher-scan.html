@@ -78,62 +78,55 @@ function getCurrentTime() {
   return d.toTimeString().slice(0, 5); // HH:MM
 }
 
-/* ===== Entry / Exit Logic (UPDATED WITH ERROR HANDLING) ===== */
+/* ===== Entry / Exit Logic ===== */
 async function markAttendance() {
-  try {
-    const today = getToday();
-    const nowTime = getCurrentTime();
+  const today = getToday();
+  const nowTime = getCurrentTime();
 
-    const attendanceRef = doc(
-      db,
-      "attendance",
-      loggedInTeacher.schoolId,
-      today,
-      loggedInTeacher.teacherId
-    );
+  const attendanceRef = doc(
+    db,
+    "attendance",
+    loggedInTeacher.schoolId,
+    today,
+    loggedInTeacher.teacherId
+  );
 
-    const snap = await getDoc(attendanceRef);
+  const snap = await getDoc(attendanceRef);
 
-    // First scan = entry
-    if (!snap.exists()) {
-      await setDoc(attendanceRef, {
-        teacherId: loggedInTeacher.teacherId,
-        teacherName: loggedInTeacher.name,
-        schoolId: loggedInTeacher.schoolId,
-        date: today,
-        entryTime: nowTime,
-        status: "Present",
-        createdAt: serverTimestamp()
-      });
+  // First scan = entry
+  if (!snap.exists()) {
+    await setDoc(attendanceRef, {
+      teacherId: loggedInTeacher.teacherId,
+      teacherName: loggedInTeacher.name,
+      schoolId: loggedInTeacher.schoolId,
+      date: today,
+      entryTime: nowTime,
+      status: "Present",
+      createdAt: serverTimestamp()
+    });
 
-      msg.textContent = "Entry time marked: " + nowTime;
-      msg.className = "msg success";
-      return;
-    }
-
-    const data = snap.data();
-
-    // Second scan = exit
-    if (!data.exitTime) {
-      await updateDoc(attendanceRef, {
-        exitTime: nowTime,
-        updatedAt: serverTimestamp()
-      });
-
-      msg.textContent = "Exit time marked: " + nowTime;
-      msg.className = "msg success";
-      return;
-    }
-
-    // Already done
-    msg.textContent = "Attendance already completed for today";
-    msg.className = "msg error";
-
-  } catch (e) {
-    console.error("❌ Firestore write failed:", e);
-    msg.textContent = "Save failed: " + e.message;
-    msg.className = "msg error";
+    msg.textContent = "Entry time marked: " + nowTime;
+    msg.className = "msg success";
+    return;
   }
+
+  const data = snap.data();
+
+  // Second scan = exit
+  if (!data.exitTime) {
+    await updateDoc(attendanceRef, {
+      exitTime: nowTime,
+      updatedAt: serverTimestamp()
+    });
+
+    msg.textContent = "Exit time marked: " + nowTime;
+    msg.className = "msg success";
+    return;
+  }
+
+  // Already done
+  msg.textContent = "Attendance already completed for today";
+  msg.className = "msg error";
 }
 
 /* ===== QR handler ===== */
