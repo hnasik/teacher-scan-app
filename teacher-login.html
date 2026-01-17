@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Teacher Login</title>
+<style>
+body{font-family:Arial;background:#f4f6f8;text-align:center;padding:40px}
+input,button{padding:10px;width:250px;margin:8px}
+#msg{margin-top:10px;font-weight:bold}
+</style>
+</head>
+<body>
+
+<h2>Teacher Login</h2>
+
+<input id="teacherId" placeholder="Teacher ID"><br>
+<button id="loginBtn">Login</button>
+
+<p id="msg"></p>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { 
+  getFirestore, 
+  collection, 
+  query, 
+  where, 
+  getDocs 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
+  authDomain: "school-management-projec-9db7a.firebaseapp.com",
+  projectId: "school-management-projec-9db7a",
+  storageBucket: "school-management-projec-9db7a.firebasestorage.app",
+  messagingSenderId: "975842483778",
+  appId: "1:975842483778:web:d1708792ff56014f3317db"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const msg = document.getElementById("msg");
+const loginBtn = document.getElementById("loginBtn");
+
+async function loginTeacher() {
+  const teacherId = document.getElementById("teacherId").value.trim();
+
+  if(!teacherId){
+    msg.textContent = "Enter Teacher ID";
+    msg.style.color = "red";
+    return;
+  }
+
+  msg.textContent = "Checking...";
+  msg.style.color = "black";
+
+  try {
+    const q = query(
+      collection(db, "teachers"),
+      where("teacherId", "==", teacherId)
+    );
+
+    const snap = await getDocs(q);
+
+    if(snap.empty){
+      msg.textContent = "Teacher not found";
+      msg.style.color = "red";
+      return;
+    }
+
+    const teacher = snap.docs[0].data();
+
+    // IMPORTANT: use schoolId (not ownerId)
+    localStorage.setItem("teacherLogin", JSON.stringify({
+      teacherId: teacher.teacherId,
+      name: teacher.name,
+      teacherClass: teacher.teacherClass,
+      schoolId: teacher.schoolId
+    }));
+
+    window.location.href = "teacher-scan.html";
+
+  } catch(err){
+    console.error(err);
+    msg.textContent = "Login failed";
+    msg.style.color = "red";
+  }
+}
+
+loginBtn.addEventListener("click", loginTeacher);
+</script>
+
+</body>
+</html>

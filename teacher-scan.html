@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Teacher Attendance Scan</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  text-align: center;
+  padding: 20px;
+}
+#reader {
+  width: 300px;
+  margin: 20px auto;
+}
+.msg {
+  margin-top: 15px;
+  font-size: 16px;
+  font-weight: bold;
+}
+.success { color: green; }
+.error { color: red; }
+</style>
+</head>
+
+<body>
+
+<h2>Scan Attendance QR</h2>
+<p>Scan to mark Entry / Exit</p>
+
+<div id="reader"></div>
+<div id="message" class="msg"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { 
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
+  authDomain: "school-management-projec-9db7a.firebaseapp.com",
+  projectId: "school-management-projec-9db7a",
+  storageBucket: "school-management-projec-9db7a.firebasestorage.app",
+  messagingSenderId: "975842483778",
+  appId: "1:975842483778:web:d1708792ff56014f3317db"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ===== Load logged-in teacher ===== */
+const loggedInTeacher = JSON.parse(localStorage.getItem("teacherLogin"));
+
+if (!loggedInTeacher) {
+  alert("Not logged in");
+  window.location.href = "teacher-login.html";
+}
+
+const msg = document.getElementById("message");
+
+/* ===== Helpers ===== */
+function getToday() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getCurrentTime() {
+  const d = new Date();
+  return d.toTimeString().slice(0, 5); // HH:MM
+}
+
+/* ===== Entry / Exit Logic ===== */
+async function markAttendance() {
+  const today = getToday();
+  const nowTime = getCurrentTime();
+
+  const attendanceRef = doc(
+    db,
+    "attendance",
+    loggedInTeacher.schoolId,
+    today,
+    loggedInTeacher.teacherId
+  );
+
+  const snap = await getDoc(attendanceRef);
+
+  // First scan = entry
+  if (!snap.exists()) {
+    await setDoc(attendanceRef, {
+      teacherId: loggedInTeacher.teacherId,
+      teacherName: loggedInTeacher.name,
+      schoolId: loggedInTeacher.schoolId,
+      date: today,
+      entryTime: nowTime,
+      status: "Present",
+      createdAt: serverTimestamp()
+    });
+
+    msg.textContent = "Entry time marked: " + nowTime;
+    msg.className = "msg success";
+    return;
+  }
+
+  const data = snap.data();
+
+  // Second scan = exit
+  if (!data.exitTime) {
+    await updateDoc(attendanceRef, {
+      exitTime: nowTime,
+      updatedAt: serverTimestamp()
+    });
+
+    msg.textContent = "Exit time marked: " + nowTime;
+    msg.className = "msg success";
+    return;
+  }
+
+  // Already done
+  msg.textContent = "Attendance already completed for today";
+  msg.className = "msg error";
+}
+
+/* ===== QR handler ===== */
+async function onScanSuccess(decodedText) {
+  try {
+    const qrData = JSON.parse(decodedText);
+
+    if (
+      String(qrData.schoolId) === String(loggedInTeacher.schoolId) &&
+      qrData.purpose === "teacher-attendance"
+    ) {
+      await markAttendance();
+      html5QrCode.stop();
+    } else {
+      msg.textContent = "Invalid school QR code";
+      msg.className = "msg error";
+    }
+
+  } catch {
+    msg.textContent = "Invalid QR format";
+    msg.className = "msg error";
+  }
+}
+
+/* ===== Start back camera ===== */
+const html5QrCode = new Html5Qrcode("reader");
+
+html5QrCode.start(
+  { facingMode: "environment" },
+  { fps: 10, qrbox: 250 },
+  onScanSuccess
+).catch(err => {
+  msg.textContent = "Camera access denied or not available";
+  msg.className = "msg error";
+  console.error(err);
+});
+</script>
+
+</body>
+</html>
