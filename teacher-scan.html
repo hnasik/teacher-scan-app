@@ -117,44 +117,46 @@
      ?? QR SCAN SUCCESS HANDLER
   ===================================================== */
   async function onScanSuccess(decodedText) {
-    try {
-      const qrData = JSON.parse(decodedText);
+  try {
+    const qrData = JSON.parse(decodedText);
 
-      if (
-        qrData.teacherId === loggedInTeacher.teacherId &&
-        qrData.schoolId === loggedInTeacher.schoolId &&
-        qrData.token === loggedInTeacher.qrToken
-      ) {
-        await saveAttendance();
-        html5QrCode.stop();
-      } else {
-        msg.textContent = "? Invalid QR code";
-        msg.className = "msg error";
-      }
-
-    } catch (e) {
-      msg.textContent = "? Invalid QR format";
+    if (
+      qrData.schoolId === loggedInTeacher.schoolId &&
+      qrData.purpose === "teacher-attendance"
+    ) {
+      await saveAttendance();
+      html5QrCode.stop();
+    } else {
+      msg.textContent = "Invalid school QR code";
       msg.className = "msg error";
     }
+
+  } catch (e) {
+    msg.textContent = "Invalid QR format";
+    msg.className = "msg error";
   }
+}
+
 
   /* =====================================================
      ?? START CAMERA
   ===================================================== */
-  const html5QrCode = new Html5Qrcode("reader");
+  /* =====================================================
+   ?? START CAMERA (back camera)
+===================================================== */
+const html5QrCode = new Html5Qrcode("reader");
 
-  Html5Qrcode.getCameras().then(cameras => {
-    if (cameras && cameras.length) {
-      html5QrCode.start(
-        cameras[0].id,
-        { fps: 10, qrbox: 250 },
-        onScanSuccess
-      );
-    }
-  }).catch(err => {
-    msg.textContent = "? Camera access denied";
-    msg.className = "msg error";
-  });
+html5QrCode.start(
+  { facingMode: "environment" },   // back camera
+  { fps: 10, qrbox: 250 },
+  onScanSuccess
+).catch(err => {
+  msg.textContent = "Camera access denied or not available";
+  msg.className = "msg error";
+  console.error(err);
+});
+
+ 
 
 </script>
 
