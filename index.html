@@ -1,22 +1,241 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Teacher Login</title>
 <style>
-body{font-family:Arial;background:#f4f6f8;text-align:center;padding:40px}
-input,button{padding:10px;width:250px;margin:8px}
-#msg{margin-top:10px;font-weight:bold}
+  :root {
+    --primary-color: #4a90e2;
+    --primary-dark: #357abd;
+    --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --text-light: #777777;
+    --error-color: #e74c3c;
+    --success-color: #2ecc71;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    --radius: 12px;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-gradient);
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--text-color);
+  }
+
+  /* App Container (Card) */
+  .app-container {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 400px;
+    padding: 40px 30px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+    transition: transform 0.3s ease;
+  }
+
+  /* Logo Area */
+  .logo-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: white;
+  }
+  
+  .logo-icon svg {
+    width: 32px;
+    height: 32px;
+    fill: white;
+  }
+
+  h2 {
+    margin: 0 0 10px 0;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  p.subtitle {
+    margin: 0 0 30px 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+  }
+
+  /* Input Group with Floating Label */
+  .input-group {
+    position: relative;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+
+  input {
+    width: 100%;
+    padding: 16px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    border: 2px solid #e1e1e1;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s;
+    background: transparent;
+    color: var(--text-color);
+  }
+
+  input:focus {
+    border-color: var(--primary-color);
+  }
+
+  /* Floating Label Logic */
+  input::placeholder {
+    color: transparent;
+  }
+
+  label {
+    position: absolute;
+    left: 12px;
+    top: 16px;
+    color: var(--text-light);
+    font-size: 16px;
+    pointer-events: none;
+    transition: 0.2s ease all;
+    background-color: var(--card-bg);
+    padding: 0 4px;
+  }
+
+  input:focus ~ label,
+  input:not(:placeholder-shown) ~ label {
+    top: -10px;
+    font-size: 12px;
+    color: var(--primary-color);
+    font-weight: bold;
+  }
+
+  /* Button Styling */
+  button {
+    width: 100%;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  button:hover {
+    background-color: var(--primary-dark);
+  }
+
+  button:active {
+    transform: scale(0.98);
+  }
+
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Spinner for loading state */
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    display: none; /* Hidden by default */
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Message Box */
+  #msg {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s, transform 0.3s;
+    display: none; /* Layout hidden initially */
+  }
+
+  #msg.visible {
+    opacity: 1;
+    transform: translateY(0);
+    display: block;
+  }
+
+  #msg.error {
+    background-color: #fdecea;
+    color: var(--error-color);
+    border: 1px solid #fadbd8;
+  }
+
+  #msg.success {
+    background-color: #e8f8f5;
+    color: var(--success-color);
+    border: 1px solid #d1f2eb;
+  }
+
 </style>
 </head>
 <body>
 
-<h2>Teacher Login</h2>
+<div class="app-container">
+  <div class="logo-icon">
+    <!-- Simple Teacher/Graduation Cap Icon SVG -->
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+    </svg>
+  </div>
 
-<input id="teacherId" placeholder="Teacher ID"><br>
-<button id="loginBtn">Login</button>
+  <h2>Teacher Login</h2>
+  <p class="subtitle">Enter your ID to access the dashboard</p>
 
-<p id="msg"></p>
+  <form id="loginForm">
+    <div class="input-group">
+      <!-- placeholder=" " is required for the CSS floating label trick -->
+      <input id="teacherId" type="text" placeholder=" " required autocomplete="off">
+      <label for="teacherId">Teacher ID</label>
+    </div>
+
+    <button type="submit" id="loginBtn">
+      <span class="btn-text">Login</span>
+      <div class="spinner"></div>
+    </button>
+  </form>
+
+  <div id="msg"></div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -28,6 +247,7 @@ import {
   getDocs 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+// Your existing Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
   authDomain: "school-management-projec-9db7a.firebaseapp.com",
@@ -40,20 +260,48 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const msg = document.getElementById("msg");
+// UI Elements
+const form = document.getElementById("loginForm");
+const teacherIdInput = document.getElementById("teacherId");
 const loginBtn = document.getElementById("loginBtn");
+const btnText = loginBtn.querySelector('.btn-text');
+const spinner = loginBtn.querySelector('.spinner');
+const msg = document.getElementById("msg");
 
-async function loginTeacher() {
-  const teacherId = document.getElementById("teacherId").value.trim();
+// Helper to show messages
+function showMessage(text, type) {
+  msg.textContent = text;
+  msg.className = type; // 'error' or 'success'
+  msg.classList.add('visible');
+}
+
+// Helper to set loading state
+function setLoading(isLoading) {
+  if (isLoading) {
+    loginBtn.disabled = true;
+    btnText.textContent = "Checking...";
+    spinner.style.display = "block";
+    msg.classList.remove('visible'); // Hide previous messages
+  } else {
+    loginBtn.disabled = false;
+    btnText.textContent = "Login";
+    spinner.style.display = "none";
+  }
+}
+
+async function loginTeacher(e) {
+  e.preventDefault(); // Stop form from submitting normally
+  
+  const teacherId = teacherIdInput.value.trim();
 
   if(!teacherId){
-    msg.textContent = "Enter Teacher ID";
-    msg.style.color = "red";
+    showMessage("Please enter your Teacher ID", "error");
+    // Shake animation effect for error
+    teacherIdInput.focus();
     return;
   }
 
-  msg.textContent = "Checking...";
-  msg.style.color = "black";
+  setLoading(true);
 
   try {
     const q = query(
@@ -64,31 +312,37 @@ async function loginTeacher() {
     const snap = await getDocs(q);
 
     if(snap.empty){
-      msg.textContent = "Teacher not found";
-      msg.style.color = "red";
+      setLoading(false);
+      showMessage("Teacher ID not found", "error");
       return;
     }
 
     const teacher = snap.docs[0].data();
 
-    // ? FIX: use ownerId as schoolId
+    // Store session data
     localStorage.setItem("teacherLogin", JSON.stringify({
       teacherId: teacher.teacherId,
       name: teacher.name,
       teacherClass: teacher.teacherClass,
-     schoolId: teacher.schoolId
+      schoolId: teacher.schoolId
     }));
 
-    window.location.href = "teacher-scan.html";
+    showMessage("Login Successful! Redirecting...", "success");
+    
+    // Slight delay to let the user see the success message
+    setTimeout(() => {
+      window.location.href = "teacher-scan.html";
+    }, 1000);
 
   } catch(err){
     console.error(err);
-    msg.textContent = "Login failed";
-    msg.style.color = "red";
+    setLoading(false);
+    showMessage("Connection error. Please try again.", "error");
   }
 }
 
-loginBtn.addEventListener("click", loginTeacher);
+// Use submit event for better UX (handles Enter key)
+form.addEventListener("submit", loginTeacher);
 </script>
 
 </body>
