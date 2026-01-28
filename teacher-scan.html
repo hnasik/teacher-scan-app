@@ -38,21 +38,19 @@
     color: var(--text-color);
   }
 
-  /* App Container */
   .app-container {
     background: var(--card-bg);
     width: 100%;
-    max-width: 500px; /* Slightly wider for the scanner */
+    max-width: 500px;
     padding: 25px 20px;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     text-align: center;
     display: flex;
     flex-direction: column;
-    height: 100%; /* Fill height on mobile */
+    height: 100%;
   }
 
-  /* Header */
   .header {
     display: flex;
     justify-content: space-between;
@@ -78,14 +76,13 @@
   }
   .logout-btn:hover { color: var(--error-color); }
 
-  /* Instructions */
   p.instruction {
     color: var(--text-light);
     margin-bottom: 15px;
     font-size: 0.9rem;
   }
 
-  /* QR Reader Styling */
+  /* Scanner Area */
   #reader {
     width: 100%;
     border-radius: var(--radius);
@@ -97,16 +94,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.3s ease;
   }
 
-  /* Override html5-qrcode defaults for cleaner look */
+  /* When hidden, we fade it out rather than display:none to keep layout smooth */
+  .reader-hidden {
+    opacity: 0.1; 
+    pointer-events: none;
+  }
+
   #reader__scan_region {
     background: transparent !important;
     border: none !important;
   }
   
   #reader__dashboard {
-    display: none !important; /* Hide the default dashboard controls */
+    display: none !important;
   }
 
   /* Message Box */
@@ -140,6 +143,38 @@
     border: 1px solid #fadbd8; 
   }
 
+  .status-indicator {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-light);
+    min-height: 18px; /* Prevent layout jump */
+  }
+
+  /* Rescan Button Styling */
+  #rescanBtn {
+    margin-top: 15px;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    display: none; /* Hidden by default */
+    transition: background-color 0.2s;
+  }
+
+  #rescanBtn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  #rescanBtn:not(:disabled):hover {
+    background-color: var(--primary-dark);
+  }
+
 </style>
 </head>
 
@@ -151,11 +186,15 @@
     <button id="logoutBtn" class="logout-btn">Logout</button>
   </div>
 
-  <p class="instruction">Point camera at the School QR Code</p>
+  <p class="instruction">Scan to mark Entry or Exit</p>
 
   <div id="reader"></div>
+  <div id="statusText" class="status-indicator">Camera Active</div>
   
   <div id="message"></div>
+  
+  <!-- New Rescan Button -->
+  <button id="rescanBtn">Rescan</button>
 </div>
 
 <script type="module">
@@ -181,7 +220,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ===== Load logged-in teacher ===== */
 const loggedInTeacher = JSON.parse(localStorage.getItem("teacherLogin"));
 
 if (!loggedInTeacher) {
@@ -190,15 +228,22 @@ if (!loggedInTeacher) {
 }
 
 const msg = document.getElementById("message");
+const statusText = document.getElementById("statusText");
+const rescanBtn = document.getElementById("rescanBtn");
+const readerDiv = document.getElementById("reader");
 
-// Helper to show messages
+// QR Code Instance
+const html5QrCode = new Html5Qrcode("reader");
+
+let isProcessing = false;
+let countdownInterval = null;
+
 function showMessage(text, type) {
   msg.textContent = text;
-  msg.className = type; // 'success' or 'error'
+  msg.className = type; 
   msg.classList.add('visible');
 }
 
-/* ===== Helpers (Kept Original Logic) ===== */
 function getToday() {
   return new Date().toISOString().split("T")[0];
 }
@@ -208,7 +253,7 @@ function getCurrentTime() {
   return d.toTimeString().slice(0, 5); // HH:MM
 }
 
-/* ===== Entry / Exit Logic (Kept Original Logic) ===== */
+/* ===== Attendance Logic (Unchanged) ===== */
 async function markAttendance() {
   const today = getToday();
   const nowTime = getCurrentTime();
@@ -223,7 +268,6 @@ async function markAttendance() {
 
   const snap = await getDoc(attendanceRef);
 
-  // First scan = entry
   if (!snap.exists()) {
     await setDoc(attendanceRef, {
       teacherId: loggedInTeacher.teacherId,
@@ -236,12 +280,11 @@ async function markAttendance() {
     });
 
     showMessage("Entry time marked: " + nowTime, "success");
-    return;
+    return true; // Return success status
   }
 
   const data = snap.data();
 
-  // Second scan = exit
   if (!data.exitTime) {
     await updateDoc(attendanceRef, {
       exitTime: nowTime,
@@ -249,15 +292,68 @@ async function markAttendance() {
     });
 
     showMessage("Exit time marked: " + nowTime, "success");
-    return;
+    return true; // Return success status
   }
 
-  // Already done
   showMessage("Attendance already completed for today", "error");
+  return false; // Return error status
 }
 
-/* ===== QR handler (Kept Original Logic) ===== */
+/* ===== Camera / Rescan Logic ===== */
+
+// Function to start the camera
+async function startCamera() {
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } }, 
+      onScanSuccess
+    );
+    statusText.textContent = "Camera Active";
+    statusText.style.color = "var(--text-light)";
+    readerDiv.classList.remove('reader-hidden');
+  } catch (err) {
+    console.error(err);
+    statusText.textContent = "Camera Error";
+  }
+}
+
+// Function to stop the camera and show rescan button
+function stopCameraAndPrepareRescan() {
+  // Stop camera to save battery/processing
+  html5QrCode.stop().then(() => {
+    // Visually dim the reader
+    readerDiv.classList.add('reader-hidden');
+    statusText.textContent = "Camera Paused";
+    
+    // Show Rescan Button and start countdown
+    rescanBtn.style.display = "block";
+    rescanBtn.disabled = true;
+    
+    let secondsLeft = 30;
+    rescanBtn.textContent = `Wait ${secondsLeft}s`;
+    
+    if(countdownInterval) clearInterval(countdownInterval);
+    
+    countdownInterval = setInterval(() => {
+      secondsLeft--;
+      if (secondsLeft > 0) {
+        rescanBtn.textContent = `Wait ${secondsLeft}s`;
+      } else {
+        clearInterval(countdownInterval);
+        rescanBtn.textContent = "Rescan Now";
+        rescanBtn.disabled = false;
+      }
+    }, 1000);
+  }).catch(err => {
+    console.error("Failed to stop camera", err);
+  });
+}
+
+/* ===== Main Scan Handler ===== */
 async function onScanSuccess(decodedText) {
+  if (isProcessing) return;
+
   try {
     const qrData = JSON.parse(decodedText);
 
@@ -265,34 +361,47 @@ async function onScanSuccess(decodedText) {
       String(qrData.schoolId) === String(loggedInTeacher.schoolId) &&
       qrData.purpose === "teacher-attendance"
     ) {
-      await markAttendance();
-      // Stop scanning after success
-      html5QrCode.stop();
+      isProcessing = true;
+      statusText.textContent = "Processing...";
+      statusText.style.color = "var(--primary-color)";
+
+      const success = await markAttendance();
+
+      if (success) {
+        // If successful scan, stop camera and show rescan button with 30s wait
+        stopCameraAndPrepareRescan();
+      } else {
+        // If logic returned error (e.g. Already completed), allow scanning immediately again after short delay
+        setTimeout(() => {
+          isProcessing = false;
+          statusText.textContent = "Camera Active";
+          statusText.style.color = "var(--text-light)";
+        }, 2000);
+      }
     } else {
       showMessage("Invalid school QR code", "error");
     }
 
-  } catch {
+  } catch (err) {
+    console.error(err);
     showMessage("Invalid QR format", "error");
   }
 }
 
-/* ===== Start back camera ===== */
-const html5QrCode = new Html5Qrcode("reader");
-
-html5QrCode.start(
-  { facingMode: "environment" },
-  { fps: 10, qrbox: { width: 250, height: 250 } }, // Square box for scanning
-  onScanSuccess
-).catch(err => {
-  showMessage("Camera access denied or not available", "error");
-  console.error(err);
+/* ===== Rescan Button Event ===== */
+rescanBtn.addEventListener("click", () => {
+  // Hide button
+  rescanBtn.style.display = "none";
+  // Clear any messages
+  msg.classList.remove('visible');
+  // Restart camera
+  isProcessing = false;
+  startCamera();
 });
 
-/* ===== Logout Logic ===== */
+/* ===== Logout Event ===== */
 document.getElementById("logoutBtn").addEventListener("click", () => {
   localStorage.removeItem("teacherLogin");
-  // Stop camera if active
   if(html5QrCode && html5QrCode.isScanning) {
     html5QrCode.stop().then(() => {
        window.location.href = "teacher-login.html";
@@ -303,6 +412,9 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
     window.location.href = "teacher-login.html";
   }
 });
+
+// Start camera on page load
+startCamera();
 
 </script>
 
