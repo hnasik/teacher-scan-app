@@ -1,169 +1,728 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Teacher Attendance Scan</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Attendance Scan | Academic Portal</title>
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- QR Scanner (original) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  text-align: center;
-  padding: 20px;
-}
-#reader {
-  width: 300px;
-  margin: 20px auto;
-}
-.msg {
-  margin-top: 15px;
-  font-size: 16px;
-  font-weight: bold;
-}
-.success { color: green; }
-.error { color: red; }
-</style>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #818cf8;
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6d28d9 100%);
+            --sidebar-gradient: linear-gradient(180deg, #1e1b4b 0%, #312e81 40%, #4f46e5 100%);
+            --bg: linear-gradient(135deg, #eef3fc 0%, #e6ecf7 30%, #f0f4fa 70%, #e8edf5 100%);
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-light: #94a3b8;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.08);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--bg);
+            background-attachment: fixed;
+            -webkit-background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            padding-left: 260px;
+            transition: padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ---------- SIDEBAR ---------- */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: var(--sidebar-gradient);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 30px rgba(30, 27, 75, 0.35);
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+        .sidebar-header {
+            padding: 24px 20px 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+        }
+        .sidebar-header .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .sidebar-header h3 {
+            color: #fff;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            padding: 12px 14px;
+            font-weight: 500;
+            font-size: 14px;
+            border-radius: var(--radius-md);
+            transition: all var(--transition);
+            margin-bottom: 4px;
+        }
+        .sidebar a .nav-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            background: rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+        }
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            transform: translateX(4px);
+        }
+        .sidebar a.active {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar a.active::before {
+            content: '';
+            position: absolute;
+            left: -12px;
+            top: 20%;
+            bottom: 20%;
+            width: 4px;
+            background: #fff;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* ---------- SVG ICONS (replacing emoji) ---------- */
+        .logo-icon svg,
+        .nav-icon svg {
+            display: block;
+            flex-shrink: 0;
+        }
+        .sidebar-header .logo-icon {
+            color: #fff;
+        }
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+        .nav-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Hamburger */
+        .hamburger {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 1100;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 5px;
+            box-shadow: var(--shadow-lg);
+            transition: all var(--transition);
+        }
+        .hamburger:hover { transform: scale(1.05); }
+        .hamburger span {
+            display: block;
+            width: 22px;
+            height: 2.5px;
+            background: #fff;
+            border-radius: 3px;
+            transition: all var(--transition);
+        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 900;
+            opacity: 0;
+            transition: opacity 0.4s;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .overlay.show { opacity: 1; }
+
+        /* ---------- MAIN CONTENT ---------- */
+        .main-content {
+            padding: 32px 36px;
+            max-width: 800px;
+            min-height: 100vh;
+            margin: 0 auto;
+        }
+
+        .header {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: rgba(79, 70, 229, 0.3);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+
+        .card:hover::before { opacity: 1; }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 350px;
+            margin: 20px auto;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 2px solid var(--border);
+            background: #000;
+        }
+
+        #reader video {
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+        }
+
+        .msg {
+            margin-top: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            display: none;
+        }
+
+        .msg svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .msg.success {
+            background: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #a7f3d0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .msg.error {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .msg.info {
+            background: #eff6ff;
+            color: var(--primary);
+            border: 1px solid #bfdbfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* ---------- MOBILE RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0;
+            }
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 8px 0 40px rgba(0,0,0,0.3);
+            }
+            .hamburger { display: flex; }
+            .overlay { display: block; pointer-events: none; }
+            .overlay.show { pointer-events: auto; }
+
+            .main-content {
+                padding: 76px 16px 24px;
+            }
+            .header {
+                font-size: 22px;
+            }
+            .card {
+                padding: 18px 16px;
+            }
+            #reader {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content { padding: 68px 10px 16px; }
+            .header { font-size: 20px; }
+            .card { padding: 16px 12px; }
+        }
+    </style>
 </head>
-
 <body>
 
-<h2>Scan Attendance QR</h2>
-<p>Scan to mark Entry / Exit</p>
+    <!-- Hamburger & Overlay -->
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+    </button>
+    <div class="overlay" id="overlay"></div>
 
-<div id="reader"></div>
-<div id="message" class="msg"></div>
+    <!-- Sidebar (consistent with other pages) -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                </svg>
+            </div>
+            <h3>Question Menu</h3>
+        </div>
+        <a href="student-list.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                    <line x1="8" y1="16" x2="16" y2="16"></line>
+                </svg>
+            </span> Student List
+        </a>
+        <a href="student.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10L12 5 2 10l10 5 10-5z"></path>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                </svg>
+            </span> Students
+        </a>
+        <a href="marksheet.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+            </span> Marksheet
+        </a>
+       
+        <a href="add-marksheet.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </span> Add Marksheet
+        </a>
+        <a href="qr-scanner.html" class="active">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                    <line x1="7" y1="12" x2="17" y2="12"></line>
+                </svg>
+            </span> QR Scanner
+        </a>
+    </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { 
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">Scan Attendance QR</div>
+        <p class="subtitle">Point your camera at your QR code to mark attendance</p>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
-  authDomain: "school-management-projec-9db7a.firebaseapp.com",
-  projectId: "school-management-projec-9db7a",
-  storageBucket: "school-management-projec-9db7a.firebasestorage.app",
-  messagingSenderId: "975842483778",
-  appId: "1:975842483778:web:d1708792ff56014f3317db"
-};
+        <div class="card">
+            <h2>Teacher Attendance</h2>
+            <p>Position the QR code within the scanner frame</p>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+            <div id="reader"></div>
+            <div id="message" class="msg"></div>
+        </div>
+    </div>
 
-/* ===== Load logged-in teacher ===== */
-const loggedInTeacher = JSON.parse(localStorage.getItem("teacherLogin"));
+    <!-- Firebase SDKs (modular v9 - original) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import {
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc
+        } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-if (!loggedInTeacher) {
-  alert("Not logged in");
-  window.location.href = "teacher-login.html";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
+            authDomain: "school-management-projec-9db7a.firebaseapp.com",
+            projectId: "school-management-projec-9db7a",
+            storageBucket: "school-management-projec-9db7a.firebasestorage.app",
+            messagingSenderId: "975842483778",
+            appId: "1:975842483778:web:d1708792ff56014f3317db",
+            measurementId: "G-1X2Q7LE6G3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+       const teacherLoginData = localStorage.getItem("teacherLogin");
+
+if (!teacherLoginData) {
+    alert("Please login first");
+
+    window.location.href = "teacher-login.html";
+
+    throw new Error("Teacher login not found");
 }
 
-const msg = document.getElementById("message");
+const loggedInTeacher = JSON.parse(teacherLoginData);
 
-/* ===== Helpers ===== */
-function getToday() {
-  return new Date().toISOString().split("T")[0];
-}
+console.log("Logged in teacher:", loggedInTeacher);
 
-function getCurrentTime() {
-  const d = new Date();
-  return d.toTimeString().slice(0, 5); // HH:MM
-}
+        const msg = document.getElementById("message");
 
-/* ===== Entry / Exit Logic ===== */
-async function markAttendance() {
-  const today = getToday();
-  const nowTime = getCurrentTime();
+        // SVG icons for messages (replacing emoji)
+        const msgIcons = {
+            success: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            error: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+            info: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+        };
 
-  const attendanceRef = doc(
-    db,
-    "attendance",
-    loggedInTeacher.schoolId,
-    today,
-    loggedInTeacher.teacherId
-  );
+        function showMessage(text, type) {
+            msg.innerHTML = (msgIcons[type] || '') + text;
+            msg.className = `msg ${type}`;
+        }
+async function saveAttendance() {
 
-  const snap = await getDoc(attendanceRef);
+    const today = new Date().toISOString().split("T")[0];
 
-  // First scan = entry
-  if (!snap.exists()) {
-    await setDoc(attendanceRef, {
-      teacherId: loggedInTeacher.teacherId,
-      teacherName: loggedInTeacher.name,
-      schoolId: loggedInTeacher.schoolId,
-      date: today,
-      entryTime: nowTime,
-      status: "Present",
-      createdAt: serverTimestamp()
-    });
+    const attendanceRef = doc(
+        db,
+        "attendance",
+        loggedInTeacher.schoolId,
+        today,
+        loggedInTeacher.teacherId
+    );
 
-    msg.textContent = "Entry time marked: " + nowTime;
-    msg.className = "msg success";
-    return;
-  }
+    const attendanceSnap = await getDoc(attendanceRef);
 
-  const data = snap.data();
+    const now = new Date();
 
-  // Second scan = exit
-  if (!data.exitTime) {
-    await updateDoc(attendanceRef, {
-      exitTime: nowTime,
-      updatedAt: serverTimestamp()
-    });
 
-    msg.textContent = "Exit time marked: " + nowTime;
-    msg.className = "msg success";
-    return;
-  }
+    // ======================================
+    // FIRST SCAN → ENTRY
+    // ======================================
 
-  // Already done
-  msg.textContent = "Attendance already completed for today";
-  msg.className = "msg error";
-}
+    if (!attendanceSnap.exists()) {
 
-/* ===== QR handler ===== */
-async function onScanSuccess(decodedText) {
-  try {
-    const qrData = JSON.parse(decodedText);
+        await setDoc(attendanceRef, {
 
-    if (
-      String(qrData.schoolId) === String(loggedInTeacher.schoolId) &&
-      qrData.purpose === "teacher-attendance"
-    ) {
-      await markAttendance();
-      html5QrCode.stop();
-    } else {
-      msg.textContent = "Invalid school QR code";
-      msg.className = "msg error";
+            teacherId: loggedInTeacher.teacherId,
+            teacherName: loggedInTeacher.name || "",
+            teacherClass: loggedInTeacher.teacherClass || "",
+
+            schoolId: loggedInTeacher.schoolId,
+            ownerId: loggedInTeacher.ownerId || "",
+
+            date: today,
+
+            entryTime: now,
+            exitTime: null,
+
+            status: "checked-in"
+
+        });
+
+        showMessage(
+            "Entry attendance recorded successfully",
+            "success"
+        );
+
+        return true;
     }
 
-  } catch {
-    msg.textContent = "Invalid QR format";
-    msg.className = "msg error";
-  }
+
+    // ======================================
+    // SECOND SCAN → EXIT
+    // ======================================
+
+    const attendanceData = attendanceSnap.data();
+
+    if (!attendanceData.exitTime) {
+
+        await updateDoc(attendanceRef, {
+
+            exitTime: now,
+
+            status: "completed"
+
+        });
+
+        showMessage(
+            "Exit attendance recorded successfully",
+            "success"
+        );
+
+        return true;
+    }
+
+
+    // ======================================
+    // THIRD SCAN → BLOCK
+    // ======================================
+
+    showMessage(
+        "Today's entry and exit attendance are already completed",
+        "error"
+    );
+
+    return false;
 }
 
-/* ===== Start back camera ===== */
-const html5QrCode = new Html5Qrcode("reader");
+          
 
-html5QrCode.start(
-  { facingMode: "environment" },
-  { fps: 10, qrbox: 250 },
-  onScanSuccess
+       async function onScanSuccess(decodedText) {
+
+    try {
+
+        const qrData = JSON.parse(decodedText);
+
+        console.log("QR Data:", qrData);
+        console.log("Logged In Teacher:", loggedInTeacher);
+
+        // Check QR purpose
+        if (qrData.purpose !== "teacher-attendance") {
+
+            showMessage(
+                "This QR code is not valid for teacher attendance",
+                "error"
+            );
+
+            return;
+        }
+
+        // Check school
+        if (qrData.schoolId !== loggedInTeacher.schoolId) {
+
+            showMessage(
+                "This QR code belongs to another school",
+                "error"
+            );
+
+            return;
+        }
+
+        // QR is valid for this school
+        const saved = await saveAttendance();
+
+        if (saved) {
+
+            html5QrCode.stop()
+                .then(() => {
+
+                    setTimeout(() => {
+
+                        window.location.href = "student-list.html";
+
+                    }, 1500);
+
+                })
+                .catch(() => {
+
+                    window.location.href = "student-list.html";
+
+                });
+        }
+
+    } catch (error) {
+
+        console.error("QR Scan Error:", error);
+
+        showMessage(
+            "Invalid QR format",
+            "error"
+        );
+    }
+}
+        const html5QrCode = new Html5Qrcode("reader");
+
+       html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    onScanSuccess
 ).catch(err => {
-  msg.textContent = "Camera access denied or not available";
-  msg.className = "msg error";
-  console.error(err);
+    showMessage("Camera access denied", "error");
 });
-</script>
+    </script>
 
+    <!-- Hamburger/Overlay logic -->
+    <script>
+        (function() {
+            const hamburger = document.getElementById('hamburger');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            hamburger.addEventListener('click', () => {
+                hamburger.classList.toggle('active');
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('show');
+            });
+            overlay.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                sidebar.classList.remove('open');
+                overlay.classList.remove('show');
+            });
+            sidebar.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        hamburger.classList.remove('active');
+                        sidebar.classList.remove('open');
+                        overlay.classList.remove('show');
+                    }
+                });
+            });
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    hamburger.classList.remove('active');
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                }
+            });
+        })();
+    </script>
+<script type="module" src="back-button.js"></script>
+<script type="module">
+    import './admob.js';
+</script>
 </body>
 </html>
