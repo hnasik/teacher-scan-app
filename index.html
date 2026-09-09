@@ -290,13 +290,13 @@ function setLoading(isLoading) {
 }
 
 async function loginTeacher(e) {
-  e.preventDefault(); // Stop form from submitting normally
-  
+
+  e.preventDefault();
+
   const teacherId = teacherIdInput.value.trim();
 
-  if(!teacherId){
+  if (!teacherId) {
     showMessage("Please enter your Teacher ID", "error");
-    // Shake animation effect for error
     teacherIdInput.focus();
     return;
   }
@@ -304,45 +304,247 @@ async function loginTeacher(e) {
   setLoading(true);
 
   try {
-    const q = query(
+
+    /*
+    ============================================
+    STEP 1
+    Teacher ID দিয়ে teacher খোঁজা
+    ============================================
+    */
+
+    const teacherQuery = query(
       collection(db, "teachers"),
       where("teacherId", "==", teacherId)
     );
 
-    const snap = await getDocs(q);
+    const teacherSnap = await getDocs(teacherQuery);
 
-    if(snap.empty){
+
+    if (teacherSnap.empty) {
+
       setLoading(false);
-      showMessage("Teacher ID not found", "error");
+
+      showMessage(
+        "Teacher ID not found",
+        "error"
+      );
+
       return;
     }
 
-    const teacher = snap.docs[0].data();
 
-    // Store session data
-    localStorage.setItem("teacherLogin", JSON.stringify({
-      teacherId: teacher.teacherId,
-      name: teacher.name,
-      teacherClass: teacher.teacherClass,
-      schoolId: teacher.schoolId
-    }));
+    /*
+    ============================================
+    STEP 2
+    Teacher document নেওয়া
+    ============================================
+    */
 
-    showMessage("Login Successful! Redirecting...", "success");
-    
-    // Slight delay to let the user see the success message
+    const teacherDoc = teacherSnap.docs[0];
+
+    const teacher = teacherDoc.data();
+
+
+    console.log("Teacher Found:", teacher);
+
+
+    /*
+    ============================================
+    STEP 3
+    Teacher-এর ownerId আছে কিনা
+    ============================================
+    */
+
+    if (!teacher.ownerId) {
+
+      setLoading(false);
+
+      showMessage(
+        "Teacher is not linked to a school owner",
+        "error"
+      );
+
+      return;
+    }
+
+
+    /*
+    ============================================
+    STEP 4
+    ownerId দিয়ে user collection search
+    ============================================
+    */
+
+    const ownerQuery = query(
+      collection(db, "user"),
+      where("uid", "==", teacher.ownerId)
+    );
+
+    const ownerSnap = await getDocs(ownerQuery);
+
+
+    if (ownerSnap.empty) {
+
+      setLoading(false);
+
+      showMessage(
+        "School owner account not found",
+        "error"
+      );
+
+      return;
+    }
+
+
+    /*
+    ============================================
+    STEP 5
+    Owner document পাওয়া
+    ============================================
+    */
+
+    const owner = ownerSnap.docs[0].data();
+
+
+    console.log("Owner Found:", owner);
+
+
+    /*
+    ============================================
+    STEP 6
+    Owner-এর schoolId পাওয়া
+    ============================================
+    */
+
+    const ownerSchoolId = owner.schoolId;
+
+
+    if (!ownerSchoolId) {
+
+      setLoading(false);
+
+      showMessage(
+        "School ID is missing from owner account",
+        "error"
+      );
+
+      return;
+    }
+
+
+    /*
+    ============================================
+    STEP 7
+    Teacher schoolId এবং
+    Owner schoolId যাচাই
+    ============================================
+    */
+
+    if (
+      teacher.schoolId &&
+      teacher.schoolId !== ownerSchoolId
+    ) {
+
+      console.error(
+        "School ID mismatch!",
+        {
+          teacherSchoolId: teacher.schoolId,
+          ownerSchoolId: ownerSchoolId
+        }
+      );
+
+      setLoading(false);
+
+      showMessage(
+        "Teacher school information does not match the school owner",
+        "error"
+      );
+
+      return;
+    }
+
+
+    /*
+    ============================================
+    STEP 8
+    VERIFIED SCHOOL ID SAVE
+    ============================================
+
+    সবচেয়ে গুরুত্বপূর্ণ বিষয়:
+
+    এখানে teacher.schoolId blindly save করা হচ্ছে না।
+
+    Owner থেকে verified হওয়া schoolId save করা হচ্ছে।
+    */
+
+    const verifiedSchoolId = ownerSchoolId;
+
+
+    localStorage.setItem(
+      "teacherLogin",
+      JSON.stringify({
+
+        teacherId: teacher.teacherId,
+
+        name: teacher.name || "",
+
+        teacherClass: teacher.teacherClass || "",
+
+        ownerId: teacher.ownerId,
+
+        schoolId: verifiedSchoolId
+
+      })
+    );
+
+
+    console.log(
+      "Verified Teacher Login:",
+      {
+        teacherId: teacher.teacherId,
+        ownerId: teacher.ownerId,
+        schoolId: verifiedSchoolId
+      }
+    );
+
+
+    /*
+    ============================================
+    STEP 9
+    LOGIN SUCCESS
+    ============================================
+    */
+
+    showMessage(
+      "Login Successful! Redirecting...",
+      "success"
+    );
+
+
     setTimeout(() => {
-      window.location.href = "teacher-scan.html";
+
+      window.location.href = "scan.html";
+
     }, 1000);
 
-  } catch(err){
-    console.error(err);
-    setLoading(false);
-    showMessage("Connection error. Please try again.", "error");
-  }
-}
 
-// Use submit event for better UX (handles Enter key)
-form.addEventListener("submit", loginTeacher);
+  } catch (err) {
+
+    console.error(
+      "Teacher Login Error:",
+      err
+    );
+
+    setLoading(false);
+
+    showMessage(
+      "Connection error. Please try again.",
+      "error"
+    );
+
+  }
+
+}
 </script>
 
 </body>
