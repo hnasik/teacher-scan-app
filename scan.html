@@ -475,11 +475,12 @@
     <!-- Firebase SDKs (modular v9 - original) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import {
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc
+        import { 
+            getFirestore,
+            doc,
+            setDoc,
+            getDoc,
+            serverTimestamp
         } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -522,94 +523,36 @@ console.log("Logged in teacher:", loggedInTeacher);
             msg.innerHTML = (msgIcons[type] || '') + text;
             msg.className = `msg ${type}`;
         }
-async function saveAttendance() {
 
-    const today = new Date().toISOString().split("T")[0];
+        async function saveAttendance() {
+            const today = new Date().toISOString().split("T")[0];
 
-    const attendanceRef = doc(
-        db,
-        "attendance",
-        loggedInTeacher.schoolId,
-        today,
-        loggedInTeacher.teacherId
-    );
+            const attendanceRef = doc(
+                db,
+                "attendance",
+                loggedInTeacher.schoolId,
+                today,
+                loggedInTeacher.teacherId
+            );
 
-    const attendanceSnap = await getDoc(attendanceRef);
+            const alreadyMarked = await getDoc(attendanceRef);
+            if (alreadyMarked.exists()) {
+                showMessage("Attendance already marked today", "error");
+                return false;
+            }
 
-    const now = new Date();
+            await setDoc(attendanceRef, {
+                teacherId: loggedInTeacher.teacherId,
+                schoolId: loggedInTeacher.schoolId,
+                date: today,
+                status: "Present",
+                method: "QR",
+                createdAt: serverTimestamp()
+            });
 
-
-    // ======================================
-    // FIRST SCAN → ENTRY
-    // ======================================
-
-    if (!attendanceSnap.exists()) {
-
-        await setDoc(attendanceRef, {
-
-            teacherId: loggedInTeacher.teacherId,
-            teacherName: loggedInTeacher.name || "",
-            teacherClass: loggedInTeacher.teacherClass || "",
-
-            schoolId: loggedInTeacher.schoolId,
-            ownerId: loggedInTeacher.ownerId || "",
-
-            date: today,
-
-            entryTime: now,
-            exitTime: null,
-
-            status: "checked-in"
-
-        });
-
-        showMessage(
-            "Entry attendance recorded successfully",
-            "success"
-        );
-
-        return true;
-    }
-
-
-    // ======================================
-    // SECOND SCAN → EXIT
-    // ======================================
-
-    const attendanceData = attendanceSnap.data();
-
-    if (!attendanceData.exitTime) {
-
-        await updateDoc(attendanceRef, {
-
-            exitTime: now,
-
-            status: "completed"
-
-        });
-
-        showMessage(
-            "Exit attendance recorded successfully",
-            "success"
-        );
-
-        return true;
-    }
-
-
-    // ======================================
-    // THIRD SCAN → BLOCK
-    // ======================================
-
-    showMessage(
-        "Today's entry and exit attendance are already completed",
-        "error"
-    );
-
-    return false;
-}
-
-          
+            showMessage("Attendance marked successfully! Redirecting...", "success");
+            return true;
+        }
 
        async function onScanSuccess(decodedText) {
 
@@ -720,6 +663,9 @@ async function saveAttendance() {
             });
         })();
     </script>
-
+<script type="module" src="back-button.js"></script>
+<script type="module">
+    import './admob.js';
+</script>
 </body>
 </html>
