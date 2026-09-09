@@ -473,61 +473,225 @@
     </div>
 
     <!-- Firebase SDKs (modular v9 - original) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { 
-            getFirestore,
-            doc,
-            setDoc,
-            getDoc,
-            serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+   <script type="module">
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
-            authDomain: "school-management-projec-9db7a.firebaseapp.com",
-            projectId: "school-management-projec-9db7a",
-            storageBucket: "school-management-projec-9db7a.firebasestorage.app",
-            messagingSenderId: "975842483778",
-            appId: "1:975842483778:web:d1708792ff56014f3317db",
-            measurementId: "G-1X2Q7LE6G3"
-        };
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    import {
+        getFirestore,
+        doc,
+        setDoc,
+        getDoc,
+        updateDoc,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-       const teacherLoginData = localStorage.getItem("teacherLogin");
 
-if (!teacherLoginData) {
-    alert("Please login first");
+    // =========================
+    // FIREBASE CONFIG
+    // =========================
 
-    window.location.href = "teacher-login.html";
+    const firebaseConfig = {
+        apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
+        authDomain: "school-management-projec-9db7a.firebaseapp.com",
+        projectId: "school-management-projec-9db7a",
+        storageBucket: "school-management-projec-9db7a.firebasestorage.app",
+        messagingSenderId: "975842483778",
+        appId: "1:975842483778:web:d1708792ff56014f3317db",
+        measurementId: "G-1X2Q7LE6G3"
+    };
 
-    throw new Error("Teacher login not found");
-}
 
-const loggedInTeacher = JSON.parse(teacherLoginData);
+    // =========================
+    // INITIALIZE FIREBASE
+    // =========================
 
-console.log("Logged in teacher:", loggedInTeacher);
+    const app = initializeApp(firebaseConfig);
 
-        const msg = document.getElementById("message");
+    const db = getFirestore(app);
 
-        // SVG icons for messages (replacing emoji)
-        const msgIcons = {
-            success: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
-            error: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
-            info: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
-        };
 
-        function showMessage(text, type) {
-            msg.innerHTML = (msgIcons[type] || '') + text;
-            msg.className = `msg ${type}`;
+    // =========================
+    // GET LOGGED-IN TEACHER
+    // =========================
+
+    const teacherLoginData =
+        localStorage.getItem("teacherLogin");
+
+
+    if (!teacherLoginData) {
+
+        alert("Please login first");
+
+        window.location.href =
+            "teacher-login.html";
+
+        throw new Error(
+            "Teacher login not found"
+        );
+
+    }
+
+
+    const loggedInTeacher =
+        JSON.parse(teacherLoginData);
+
+
+    console.log(
+        "Logged in teacher:",
+        loggedInTeacher
+    );
+
+
+    // =========================
+    // IMPORTANT VALIDATION
+    // =========================
+
+    if (
+        !loggedInTeacher.teacherId ||
+        !loggedInTeacher.schoolId ||
+        !loggedInTeacher.ownerId
+    ) {
+
+        alert(
+            "Invalid teacher login data. Please login again."
+        );
+
+        localStorage.removeItem(
+            "teacherLogin"
+        );
+
+        window.location.href =
+            "teacher-login.html";
+
+        throw new Error(
+            "Invalid teacher login data"
+        );
+
+    }
+
+
+    const msg =
+        document.getElementById("message");
+
+
+    // =========================
+    // MESSAGE ICONS
+    // =========================
+
+    const msgIcons = {
+
+        success:
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+
+        error:
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+
+        info:
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+
+    };
+
+
+    function showMessage(
+        text,
+        type
+    ) {
+
+        msg.innerHTML =
+            (msgIcons[type] || "") +
+            text;
+
+        msg.className =
+            `msg ${type}`;
+
+    }
+
+
+    // =========================
+    // LOCAL DATE
+    // INDIA TIMEZONE FRIENDLY
+    // =========================
+
+    function getLocalDate() {
+
+        const now =
+            new Date();
+
+        const year =
+            now.getFullYear();
+
+        const month =
+            String(
+                now.getMonth() + 1
+            ).padStart(2, "0");
+
+        const day =
+            String(
+                now.getDate()
+            ).padStart(2, "0");
+
+
+        return `${year}-${month}-${day}`;
+
+    }
+
+
+    // =========================
+    // SCAN LOCK
+    // PREVENT SAME QR
+    // MULTIPLE DETECTION
+    // =========================
+
+    let scanLocked = false;
+
+
+    // =========================
+    // STOP CAMERA
+    // =========================
+
+    async function stopScanner() {
+
+        try {
+
+            await html5QrCode.stop();
+
+        } catch (error) {
+
+            console.log(
+                "Scanner already stopped"
+            );
+
         }
 
-        async function saveAttendance() {
-            const today = new Date().toISOString().split("T")[0];
+    }
 
-            const attendanceRef = doc(
+
+    // =========================
+    // SAVE ENTRY / EXIT
+    // =========================
+
+    async function saveAttendance() {
+
+
+        const today =
+            getLocalDate();
+
+
+        /*
+        ATTENDANCE PATH
+
+        attendance
+            ↓
+        schoolId
+            ↓
+        date
+            ↓
+        teacherId
+        */
+
+        const attendanceRef =
+            doc(
                 db,
                 "attendance",
                 loggedInTeacher.schoolId,
@@ -535,134 +699,392 @@ console.log("Logged in teacher:", loggedInTeacher);
                 loggedInTeacher.teacherId
             );
 
-            const alreadyMarked = await getDoc(attendanceRef);
-            if (alreadyMarked.exists()) {
-                showMessage("Attendance already marked today", "error");
-                return false;
+
+        const attendanceSnapshot =
+            await getDoc(
+                attendanceRef
+            );
+
+
+        // =========================
+        // FIRST SCAN = ENTRY
+        // =========================
+
+        if (
+            !attendanceSnapshot.exists()
+        ) {
+
+            await setDoc(
+                attendanceRef,
+                {
+
+                    teacherId:
+                        loggedInTeacher.teacherId,
+
+                    teacherName:
+                        loggedInTeacher.name || "",
+
+                    teacherClass:
+                        loggedInTeacher.teacherClass || "",
+
+                    schoolId:
+                        loggedInTeacher.schoolId,
+
+                    ownerId:
+                        loggedInTeacher.ownerId,
+
+                    date:
+                        today,
+
+                    status:
+                        "Present",
+
+                    method:
+                        "QR",
+
+                    entryTime:
+                        serverTimestamp(),
+
+                    exitTime:
+                        null,
+
+                    scanCount:
+                        1,
+
+                    attendanceStatus:
+                        "ENTRY",
+
+                    createdAt:
+                        serverTimestamp(),
+
+                    updatedAt:
+                        serverTimestamp()
+
+                }
+            );
+
+
+            return {
+
+                success: true,
+
+                type: "ENTRY"
+
+            };
+
+        }
+
+
+        // =========================
+        // SECOND SCAN = EXIT
+        // =========================
+
+        const attendanceData =
+            attendanceSnapshot.data();
+
+
+        if (
+            !attendanceData.exitTime
+        ) {
+
+            await updateDoc(
+                attendanceRef,
+                {
+
+                    exitTime:
+                        serverTimestamp(),
+
+                    scanCount:
+                        2,
+
+                    attendanceStatus:
+                        "COMPLETED",
+
+                    updatedAt:
+                        serverTimestamp()
+
+                }
+            );
+
+
+            return {
+
+                success: true,
+
+                type: "EXIT"
+
+            };
+
+        }
+
+
+        // =========================
+        // THIRD SCAN BLOCKED
+        // =========================
+
+        return {
+
+            success: false,
+
+            type: "LIMIT_REACHED"
+
+        };
+
+    }
+
+
+    // =========================
+    // QR SCAN SUCCESS
+    // =========================
+
+    async function onScanSuccess(
+        decodedText
+    ) {
+
+
+        // Prevent multiple callback
+        if (scanLocked) {
+
+            return;
+
+        }
+
+
+        scanLocked = true;
+
+
+        try {
+
+
+            // =========================
+            // PARSE QR DATA
+            // =========================
+
+            const qrData =
+                JSON.parse(
+                    decodedText
+                );
+
+
+            console.log(
+                "QR Data:",
+                qrData
+            );
+
+
+            console.log(
+                "Logged In Teacher:",
+                loggedInTeacher
+            );
+
+
+            // =========================
+            // CHECK QR PURPOSE
+            // =========================
+
+            if (
+                qrData.purpose !==
+                "teacher-attendance"
+            ) {
+
+                showMessage(
+                    "This QR code is not valid for teacher attendance",
+                    "error"
+                );
+
+                scanLocked = false;
+
+                return;
+
             }
 
-            await setDoc(attendanceRef, {
-                teacherId: loggedInTeacher.teacherId,
-                schoolId: loggedInTeacher.schoolId,
-                date: today,
-                status: "Present",
-                method: "QR",
-                createdAt: serverTimestamp()
-            });
 
-            showMessage("Attendance marked successfully! Redirecting...", "success");
-            return true;
-        }
+            // =========================
+            // CHECK SCHOOL
+            // =========================
 
-       async function onScanSuccess(decodedText) {
+            if (
+                qrData.schoolId !==
+                loggedInTeacher.schoolId
+            ) {
 
-    try {
+                showMessage(
+                    "This QR code belongs to another school",
+                    "error"
+                );
 
-        const qrData = JSON.parse(decodedText);
+                scanLocked = false;
 
-        console.log("QR Data:", qrData);
-        console.log("Logged In Teacher:", loggedInTeacher);
+                return;
 
-        // Check QR purpose
-        if (qrData.purpose !== "teacher-attendance") {
+            }
+
+
+            // =========================
+            // VALID QR
+            // SAVE ENTRY / EXIT
+            // =========================
 
             showMessage(
-                "This QR code is not valid for teacher attendance",
+                "QR verified. Processing attendance...",
+                "info"
+            );
+
+
+            const result =
+                await saveAttendance();
+
+
+            // =========================
+            // ENTRY SUCCESS
+            // =========================
+
+            if (
+                result.success &&
+                result.type === "ENTRY"
+            ) {
+
+                showMessage(
+                    "Entry attendance marked successfully!",
+                    "success"
+                );
+
+
+                await stopScanner();
+
+
+                setTimeout(() => {
+
+                    window.location.href =
+                        "student-list.html";
+
+                }, 1500);
+
+
+                return;
+
+            }
+
+
+            // =========================
+            // EXIT SUCCESS
+            // =========================
+
+            if (
+                result.success &&
+                result.type === "EXIT"
+            ) {
+
+                showMessage(
+                    "Exit attendance marked successfully!",
+                    "success"
+                );
+
+
+                await stopScanner();
+
+
+                setTimeout(() => {
+
+                    window.location.href =
+                        "student-list.html";
+
+                }, 1500);
+
+
+                return;
+
+            }
+
+
+            // =========================
+            // DAILY LIMIT REACHED
+            // =========================
+
+            if (
+                result.type ===
+                "LIMIT_REACHED"
+            ) {
+
+                showMessage(
+                    "Attendance already completed today. Only 2 scans are allowed per day.",
+                    "error"
+                );
+
+                scanLocked = false;
+
+                return;
+
+            }
+
+
+            scanLocked = false;
+
+
+        } catch (error) {
+
+
+            console.error(
+                "QR Scan Error:",
+                error
+            );
+
+
+            showMessage(
+                "Invalid QR format or attendance could not be processed",
                 "error"
             );
 
-            return;
+
+            scanLocked = false;
+
         }
 
-        // Check school
-        if (qrData.schoolId !== loggedInTeacher.schoolId) {
-
-            showMessage(
-                "This QR code belongs to another school",
-                "error"
-            );
-
-            return;
-        }
-
-        // QR is valid for this school
-        const saved = await saveAttendance();
-
-        if (saved) {
-
-            html5QrCode.stop()
-                .then(() => {
-
-                    setTimeout(() => {
-
-                        window.location.href = "student-list.html";
-
-                    }, 1500);
-
-                })
-                .catch(() => {
-
-                    window.location.href = "student-list.html";
-
-                });
-        }
-
-    } catch (error) {
-
-        console.error("QR Scan Error:", error);
-
-        showMessage(
-            "Invalid QR format",
-            "error"
-        );
     }
-}
-        const html5QrCode = new Html5Qrcode("reader");
 
-       html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    onScanSuccess
-).catch(err => {
-    showMessage("Camera access denied", "error");
-});
-    </script>
 
-    <!-- Hamburger/Overlay logic -->
-    <script>
-        (function() {
-            const hamburger = document.getElementById('hamburger');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
+    // =========================
+    // START CAMERA
+    // =========================
 
-            hamburger.addEventListener('click', () => {
-                hamburger.classList.toggle('active');
-                sidebar.classList.toggle('open');
-                overlay.classList.toggle('show');
-            });
-            overlay.addEventListener('click', () => {
-                hamburger.classList.remove('active');
-                sidebar.classList.remove('open');
-                overlay.classList.remove('show');
-            });
-            sidebar.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', () => {
-                    if (window.innerWidth <= 768) {
-                        hamburger.classList.remove('active');
-                        sidebar.classList.remove('open');
-                        overlay.classList.remove('show');
-                    }
-                });
-            });
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) {
-                    hamburger.classList.remove('active');
-                    sidebar.classList.remove('open');
-                    overlay.classList.remove('show');
-                }
-            });
-        })();
-    </script>
+    const html5QrCode =
+        new Html5Qrcode(
+            "reader"
+        );
+
+
+    html5QrCode.start(
+
+        {
+            facingMode:
+                "environment"
+        },
+
+        {
+            fps: 10,
+            qrbox: 250
+        },
+
+        onScanSuccess
+
+    ).catch(
+        err => {
+
+            console.error(
+                "Camera Error:",
+                err
+            );
+
+
+            showMessage(
+                "Camera access denied or camera could not be started",
+                "error"
+            );
+
+        }
+    );
+
+</script>
 <script type="module" src="back-button.js"></script>
 <script type="module">
     import './admob.js';
