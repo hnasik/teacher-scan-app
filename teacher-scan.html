@@ -1,422 +1,671 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Teacher Attendance Scan</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Attendance Scan | Academic Portal</title>
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- QR Scanner (original) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
-<style>
-  :root {
-    --primary-color: #4a90e2;
-    --primary-dark: #357abd;
-    --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    --card-bg: #ffffff;
-    --text-color: #333333;
-    --text-light: #777777;
-    --error-color: #e74c3c;
-    --success-color: #2ecc71;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    --radius: 12px;
-  }
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  * {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #818cf8;
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6d28d9 100%);
+            --sidebar-gradient: linear-gradient(180deg, #1e1b4b 0%, #312e81 40%, #4f46e5 100%);
+            --bg: linear-gradient(135deg, #eef3fc 0%, #e6ecf7 30%, #f0f4fa 70%, #e8edf5 100%);
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-light: #94a3b8;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.08);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
 
-  body {
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg-gradient);
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    color: var(--text-color);
-  }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  .app-container {
-    background: var(--card-bg);
-    width: 100%;
-    max-width: 500px;
-    padding: 25px 20px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
+        body {
+            font-family: var(--font-family);
+            background: var(--bg);
+            background-attachment: fixed;
+            -webkit-background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            padding-left: 260px;
+            transition: padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 15px;
-  }
+        /* ---------- SIDEBAR ---------- */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: var(--sidebar-gradient);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 30px rgba(30, 27, 75, 0.35);
+            overflow-y: auto;
+        }
 
-  .header h2 {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 600;
-  }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
 
-  .logout-btn {
-    background: none;
-    border: none;
-    color: var(--text-light);
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-weight: 500;
-  }
-  .logout-btn:hover { color: var(--error-color); }
+        .sidebar-header {
+            padding: 24px 20px 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+        }
+        .sidebar-header .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .sidebar-header h3 {
+            color: #fff;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
 
-  p.instruction {
-    color: var(--text-light);
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-  }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            padding: 12px 14px;
+            font-weight: 500;
+            font-size: 14px;
+            border-radius: var(--radius-md);
+            transition: all var(--transition);
+            margin-bottom: 4px;
+        }
+        .sidebar a .nav-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            background: rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+        }
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            transform: translateX(4px);
+        }
+        .sidebar a.active {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar a.active::before {
+            content: '';
+            position: absolute;
+            left: -12px;
+            top: 20%;
+            bottom: 20%;
+            width: 4px;
+            background: #fff;
+            border-radius: 0 4px 4px 0;
+        }
 
-  /* Scanner Area */
-  #reader {
-    width: 100%;
-    border-radius: var(--radius);
-    overflow: hidden;
-    background: #000;
-    margin: 0 auto;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-    min-height: 250px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.3s ease;
-  }
+        /* ---------- SVG ICONS (replacing emoji) ---------- */
+        .logo-icon svg,
+        .nav-icon svg {
+            display: block;
+            flex-shrink: 0;
+        }
+        .sidebar-header .logo-icon {
+            color: #fff;
+        }
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+        .nav-icon svg {
+            width: 18px;
+            height: 18px;
+        }
 
-  /* When hidden, we fade it out rather than display:none to keep layout smooth */
-  .reader-hidden {
-    opacity: 0.1; 
-    pointer-events: none;
-  }
+        /* Hamburger */
+        .hamburger {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 1100;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 5px;
+            box-shadow: var(--shadow-lg);
+            transition: all var(--transition);
+        }
+        .hamburger:hover { transform: scale(1.05); }
+        .hamburger span {
+            display: block;
+            width: 22px;
+            height: 2.5px;
+            background: #fff;
+            border-radius: 3px;
+            transition: all var(--transition);
+        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
 
-  #reader__scan_region {
-    background: transparent !important;
-    border: none !important;
-  }
-  
-  #reader__dashboard {
-    display: none !important;
-  }
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 900;
+            opacity: 0;
+            transition: opacity 0.4s;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .overlay.show { opacity: 1; }
 
-  /* Message Box */
-  #message {
-    margin-top: 20px;
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.3s, transform 0.3s;
-    display: none;
-  }
+        /* ---------- MAIN CONTENT ---------- */
+        .main-content {
+            padding: 32px 36px;
+            max-width: 800px;
+            min-height: 100vh;
+            margin: 0 auto;
+        }
 
-  #message.visible {
-    opacity: 1;
-    transform: translateY(0);
-    display: block;
-  }
+        .header {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
 
-  .success { 
-    background-color: #e8f8f5; 
-    color: var(--success-color); 
-    border: 1px solid #d1f2eb; 
-  }
-  
-  .error { 
-    background-color: #fdecea; 
-    color: var(--error-color); 
-    border: 1px solid #fadbd8; 
-  }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
 
-  .status-indicator {
-    margin-top: 10px;
-    font-size: 12px;
-    color: var(--text-light);
-    min-height: 18px; /* Prevent layout jump */
-  }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
 
-  /* Rescan Button Styling */
-  #rescanBtn {
-    margin-top: 15px;
-    padding: 14px;
-    font-size: 16px;
-    font-weight: 600;
-    color: white;
-    background-color: var(--primary-color);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    width: 100%;
-    display: none; /* Hidden by default */
-    transition: background-color 0.2s;
-  }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: rgba(79, 70, 229, 0.3);
+        }
 
-  #rescanBtn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
 
-  #rescanBtn:not(:disabled):hover {
-    background-color: var(--primary-dark);
-  }
+        .card:hover::before { opacity: 1; }
 
-</style>
+        .card h2 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 350px;
+            margin: 20px auto;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 2px solid var(--border);
+            background: #000;
+        }
+
+        #reader video {
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+        }
+
+        .msg {
+            margin-top: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            display: none;
+        }
+
+        .msg svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .msg.success {
+            background: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #a7f3d0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .msg.error {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .msg.info {
+            background: #eff6ff;
+            color: var(--primary);
+            border: 1px solid #bfdbfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* ---------- MOBILE RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0;
+            }
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 8px 0 40px rgba(0,0,0,0.3);
+            }
+            .hamburger { display: flex; }
+            .overlay { display: block; pointer-events: none; }
+            .overlay.show { pointer-events: auto; }
+
+            .main-content {
+                padding: 76px 16px 24px;
+            }
+            .header {
+                font-size: 22px;
+            }
+            .card {
+                padding: 18px 16px;
+            }
+            #reader {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content { padding: 68px 10px 16px; }
+            .header { font-size: 20px; }
+            .card { padding: 16px 12px; }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="app-container">
-  <div class="header">
-    <h2>Scan Attendance</h2>
-    <button id="logoutBtn" class="logout-btn">Logout</button>
-  </div>
+    <!-- Hamburger & Overlay -->
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+    </button>
+    <div class="overlay" id="overlay"></div>
 
-  <p class="instruction">Scan to mark Entry or Exit</p>
+    <!-- Sidebar (consistent with other pages) -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                </svg>
+            </div>
+            <h3>Question Menu</h3>
+        </div>
+        <a href="student-list.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                    <line x1="8" y1="16" x2="16" y2="16"></line>
+                </svg>
+            </span> Student List
+        </a>
+        <a href="student.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10L12 5 2 10l10 5 10-5z"></path>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                </svg>
+            </span> Students
+        </a>
+        <a href="marksheet.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+            </span> Marksheet
+        </a>
+       
+        <a href="add-marksheet.html">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </span> Add Marksheet
+        </a>
+        <a href="qr-scanner.html" class="active">
+            <span class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                    <line x1="7" y1="12" x2="17" y2="12"></line>
+                </svg>
+            </span> QR Scanner
+        </a>
+    </div>
 
-  <div id="reader"></div>
-  <div id="statusText" class="status-indicator">Camera Active</div>
-  
-  <div id="message"></div>
-  
-  <!-- New Rescan Button -->
-  <button id="rescanBtn">Rescan</button>
-</div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">Scan Attendance QR</div>
+        <p class="subtitle">Point your camera at your QR code to mark attendance</p>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { 
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+        <div class="card">
+            <h2>Teacher Attendance</h2>
+            <p>Position the QR code within the scanner frame</p>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
-  authDomain: "school-management-projec-9db7a.firebaseapp.com",
-  projectId: "school-management-projec-9db7a",
-  storageBucket: "school-management-projec-9db7a.firebasestorage.app",
-  messagingSenderId: "975842483778",
-  appId: "1:975842483778:web:d1708792ff56014f3317db"
-};
+            <div id="reader"></div>
+            <div id="message" class="msg"></div>
+        </div>
+    </div>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+    <!-- Firebase SDKs (modular v9 - original) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { 
+            getFirestore,
+            doc,
+            setDoc,
+            getDoc,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-const loggedInTeacher = JSON.parse(localStorage.getItem("teacherLogin"));
+        const firebaseConfig = {
+            apiKey: "AIzaSyCOzfdIXBeh6drFhml4pOFEvPG8xV_Wjzw",
+            authDomain: "school-management-projec-9db7a.firebaseapp.com",
+            projectId: "school-management-projec-9db7a",
+            storageBucket: "school-management-projec-9db7a.firebasestorage.app",
+            messagingSenderId: "975842483778",
+            appId: "1:975842483778:web:d1708792ff56014f3317db",
+            measurementId: "G-1X2Q7LE6G3"
+        };
 
-if (!loggedInTeacher) {
-  alert("Not logged in");
-  window.location.href = "teacher-login.html";
-}
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-const msg = document.getElementById("message");
-const statusText = document.getElementById("statusText");
-const rescanBtn = document.getElementById("rescanBtn");
-const readerDiv = document.getElementById("reader");
+       const teacherLoginData = localStorage.getItem("teacherLogin");
 
-// QR Code Instance
-const html5QrCode = new Html5Qrcode("reader");
+if (!teacherLoginData) {
+    alert("Please login first");
 
-let isProcessing = false;
-let countdownInterval = null;
-
-function showMessage(text, type) {
-  msg.textContent = text;
-  msg.className = type; 
-  msg.classList.add('visible');
-}
-
-function getToday() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getCurrentTime() {
-  const d = new Date();
-  return d.toTimeString().slice(0, 5); // HH:MM
-}
-
-/* ===== Attendance Logic (Unchanged) ===== */
-async function markAttendance() {
-  const today = getToday();
-  const nowTime = getCurrentTime();
-
-  const attendanceRef = doc(
-    db,
-    "attendance",
-    loggedInTeacher.schoolId,
-    today,
-    loggedInTeacher.teacherId
-  );
-
-  const snap = await getDoc(attendanceRef);
-
-  if (!snap.exists()) {
-    await setDoc(attendanceRef, {
-      teacherId: loggedInTeacher.teacherId,
-      teacherName: loggedInTeacher.name,
-      schoolId: loggedInTeacher.schoolId,
-      date: today,
-      entryTime: nowTime,
-      status: "Present",
-      createdAt: serverTimestamp()
-    });
-
-    showMessage("Entry time marked: " + nowTime, "success");
-    return true; // Return success status
-  }
-
-  const data = snap.data();
-
-  if (!data.exitTime) {
-    await updateDoc(attendanceRef, {
-      exitTime: nowTime,
-      updatedAt: serverTimestamp()
-    });
-
-    showMessage("Exit time marked: " + nowTime, "success");
-    return true; // Return success status
-  }
-
-  showMessage("Attendance already completed for today", "error");
-  return false; // Return error status
-}
-
-/* ===== Camera / Rescan Logic ===== */
-
-// Function to start the camera
-async function startCamera() {
-  try {
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } }, 
-      onScanSuccess
-    );
-    statusText.textContent = "Camera Active";
-    statusText.style.color = "var(--text-light)";
-    readerDiv.classList.remove('reader-hidden');
-  } catch (err) {
-    console.error(err);
-    statusText.textContent = "Camera Error";
-  }
-}
-
-// Function to stop the camera and show rescan button
-function stopCameraAndPrepareRescan() {
-  // Stop camera to save battery/processing
-  html5QrCode.stop().then(() => {
-    // Visually dim the reader
-    readerDiv.classList.add('reader-hidden');
-    statusText.textContent = "Camera Paused";
-    
-    // Show Rescan Button and start countdown
-    rescanBtn.style.display = "block";
-    rescanBtn.disabled = true;
-    
-    let secondsLeft = 30;
-    rescanBtn.textContent = `Wait ${secondsLeft}s`;
-    
-    if(countdownInterval) clearInterval(countdownInterval);
-    
-    countdownInterval = setInterval(() => {
-      secondsLeft--;
-      if (secondsLeft > 0) {
-        rescanBtn.textContent = `Wait ${secondsLeft}s`;
-      } else {
-        clearInterval(countdownInterval);
-        rescanBtn.textContent = "Rescan Now";
-        rescanBtn.disabled = false;
-      }
-    }, 1000);
-  }).catch(err => {
-    console.error("Failed to stop camera", err);
-  });
-}
-
-/* ===== Main Scan Handler ===== */
-async function onScanSuccess(decodedText) {
-  if (isProcessing) return;
-
-  try {
-    const qrData = JSON.parse(decodedText);
-
-    if (
-      String(qrData.schoolId) === String(loggedInTeacher.schoolId) &&
-      qrData.purpose === "teacher-attendance"
-    ) {
-      isProcessing = true;
-      statusText.textContent = "Processing...";
-      statusText.style.color = "var(--primary-color)";
-
-      const success = await markAttendance();
-
-      if (success) {
-        // If successful scan, stop camera and show rescan button with 30s wait
-        stopCameraAndPrepareRescan();
-      } else {
-        // If logic returned error (e.g. Already completed), allow scanning immediately again after short delay
-        setTimeout(() => {
-          isProcessing = false;
-          statusText.textContent = "Camera Active";
-          statusText.style.color = "var(--text-light)";
-        }, 2000);
-      }
-    } else {
-      showMessage("Invalid school QR code", "error");
-    }
-
-  } catch (err) {
-    console.error(err);
-    showMessage("Invalid QR format", "error");
-  }
-}
-
-/* ===== Rescan Button Event ===== */
-rescanBtn.addEventListener("click", () => {
-  // Hide button
-  rescanBtn.style.display = "none";
-  // Clear any messages
-  msg.classList.remove('visible');
-  // Restart camera
-  isProcessing = false;
-  startCamera();
-});
-
-/* ===== Logout Event ===== */
-document.getElementById("logoutBtn").addEventListener("click", () => {
-  localStorage.removeItem("teacherLogin");
-  if(html5QrCode && html5QrCode.isScanning) {
-    html5QrCode.stop().then(() => {
-       window.location.href = "teacher-login.html";
-    }).catch(() => {
-       window.location.href = "teacher-login.html";
-    });
-  } else {
     window.location.href = "teacher-login.html";
-  }
+
+    throw new Error("Teacher login not found");
+}
+
+const loggedInTeacher = JSON.parse(teacherLoginData);
+
+console.log("Logged in teacher:", loggedInTeacher);
+
+        const msg = document.getElementById("message");
+
+        // SVG icons for messages (replacing emoji)
+        const msgIcons = {
+            success: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            error: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+            info: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+        };
+
+        function showMessage(text, type) {
+            msg.innerHTML = (msgIcons[type] || '') + text;
+            msg.className = `msg ${type}`;
+        }
+
+        async function saveAttendance() {
+            const today = new Date().toISOString().split("T")[0];
+
+            const attendanceRef = doc(
+                db,
+                "attendance",
+                loggedInTeacher.schoolId,
+                today,
+                loggedInTeacher.teacherId
+            );
+
+            const alreadyMarked = await getDoc(attendanceRef);
+            if (alreadyMarked.exists()) {
+                showMessage("Attendance already marked today", "error");
+                return false;
+            }
+
+            await setDoc(attendanceRef, {
+                teacherId: loggedInTeacher.teacherId,
+                schoolId: loggedInTeacher.schoolId,
+                date: today,
+                status: "Present",
+                method: "QR",
+                createdAt: serverTimestamp()
+            });
+
+            showMessage("Attendance marked successfully! Redirecting...", "success");
+            return true;
+        }
+
+       async function onScanSuccess(decodedText) {
+
+    try {
+
+        const qrData = JSON.parse(decodedText);
+
+        console.log("QR Data:", qrData);
+        console.log("Logged In Teacher:", loggedInTeacher);
+
+        // Check QR purpose
+        if (qrData.purpose !== "teacher-attendance") {
+
+            showMessage(
+                "This QR code is not valid for teacher attendance",
+                "error"
+            );
+
+            return;
+        }
+
+        // Check school
+        if (qrData.schoolId !== loggedInTeacher.schoolId) {
+
+            showMessage(
+                "This QR code belongs to another school",
+                "error"
+            );
+
+            return;
+        }
+
+        // QR is valid for this school
+        const saved = await saveAttendance();
+
+        if (saved) {
+
+            html5QrCode.stop()
+                .then(() => {
+
+                    setTimeout(() => {
+
+                        window.location.href = "student-list.html";
+
+                    }, 1500);
+
+                })
+                .catch(() => {
+
+                    window.location.href = "student-list.html";
+
+                });
+        }
+
+    } catch (error) {
+
+        console.error("QR Scan Error:", error);
+
+        showMessage(
+            "Invalid QR format",
+            "error"
+        );
+    }
+}
+        const html5QrCode = new Html5Qrcode("reader");
+
+       html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    onScanSuccess
+).catch(err => {
+    showMessage("Camera access denied", "error");
 });
+    </script>
 
-// Start camera on page load
-startCamera();
+    <!-- Hamburger/Overlay logic -->
+    <script>
+        (function() {
+            const hamburger = document.getElementById('hamburger');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
 
+            hamburger.addEventListener('click', () => {
+                hamburger.classList.toggle('active');
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('show');
+            });
+            overlay.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                sidebar.classList.remove('open');
+                overlay.classList.remove('show');
+            });
+            sidebar.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        hamburger.classList.remove('active');
+                        sidebar.classList.remove('open');
+                        overlay.classList.remove('show');
+                    }
+                });
+            });
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    hamburger.classList.remove('active');
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                }
+            });
+        })();
+    </script>
+<script type="module" src="back-button.js"></script>
+<script type="module">
+    import './admob.js';
 </script>
-
 </body>
 </html>
