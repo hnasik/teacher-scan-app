@@ -656,6 +656,9 @@
         scanLocked = true;
 
         try {
+            // কনসোল লগ করে দেখতে পারবেন QR-এ ঠিক কী লেখা আছে
+            console.log("Scanned Text:", decodedText); 
+
             // ১. প্রথমে চেক করি ডেটাটি JSON কি না (টিচারের QR এর জন্য)
             let isTeacherQR = false;
             let qrData = null;
@@ -700,64 +703,100 @@
             // ----------------------------------------
             // স্টুডেন্টের অ্যাটেনডেন্স লজিক (Plain Text QR)
             // ----------------------------------------
-            // student.js থেকে তৈরি QR ফরম্যাট:
-            // Name: Rahim
-            // Class: 1
-            // Roll: 5
+            let studentName = "", studentClass = "", studentRoll = "", studentId = "";
 
-            const nameMatch = decodedText.match(/Name:\s*(.+)/i);
-            const classMatch = decodedText.match(/Class:\s*(.+)/i);
-            const rollMatch = decodedText.match(/Roll:\s*(.+)/i);
+            // যদি QR কোডে JSON থাকে (ভবিষ্যতের জন্য)
+            if (qrData) {
+                studentName = qrData.name || qrData.studentName || "";
+                studentClass = qrData.class || qrData.studentClass || "";
+                studentRoll = qrData.roll || "";
+                studentId = qrData.studentId || "";
+            }
 
-            if (!nameMatch || !classMatch || !rollMatch) {
-                showMessage("Invalid QR code format.", "error");
+            // যদি JSON না থাকে, তবে লাইন ধরে ধরে টেক্সট পড়বে (Regex এর চেয়ে অনেক নিরাপদ)
+            if (!studentId && !studentRoll) {
+                const lines = decodedText.split('\n');
+                for (let line of lines) {
+                    const cleanLine = line.trim();
+                    const lowerLine = cleanLine.toLowerCase();
+
+                    if (lowerLine.startsWith("name:")) {
+                        studentName = cleanLine.substring(5).trim();
+                    } else if (lowerLine.startsWith("class:")) {
+                        studentClass = cleanLine.substring(6).trim();
+                    } else if (lowerLine.startsWith("roll:")) {
+                        studentRoll = cleanLine.substring(5).trim();
+                    }
+                }
+            }
+
+            if (!studentName && !studentId) {
+                showMessage("Invalid QR. Please scan a valid student ID card.", "error");
                 scanLocked = false;
                 return;
             }
 
-            const studentName = nameMatch[1].trim();
-            const studentClass = classMatch[1].trim();
-            const studentRoll = rollMatch[1].trim();
+            showMessage(`Searching student ${studentName || studentId}...`, "info");
 
-            showMessage(`Searching student ${studentName}...`, "info");
+            let targetDoc = null;
+            let studentData = null;
 
-            // ডেটাবেসে স্টুডেন্টকে খোঁজা
-            const studentQuery = query(
-                collection(db, "students"),
-                where("ownerId", "==", loggedInTeacher.ownerId),
-                where("studentClass", "==", studentClass),
-                where("roll", "==", studentRoll)
-            );
+            // ১. studentId দিয়ে খোঁজা (যদি থাকে)
+            if (studentId) {
+                const qId = query(collection(db, "students"), where("ownerId", "==", loggedInTeacher.ownerId), where("studentId", "==", studentId));
+                const snapId = await getDocs(qId);
+                if (!snapId.empty) {
+                    targetDoc = snapId.docs[0];
+                    studentData = targetDoc.data();
+                }
+            }
 
-            const studentSnap = await getDocs(studentQuery);
+            // ২. ক্লাস এবং রোল/নাম দিয়ে খোঁজা (ফায়ারবেসের Number/String মিসম্যাচ এড়াতে)
+            if (!targetDoc && studentClass) {
+                const qClass = query(collection(db, "students"), where("ownerId", "==", loggedInTeacher.ownerId), where("studentClass", "==", studentClass));
+                const snapClass = await getDocs(qClass);
 
-            if (studentSnap.empty) {
-                showMessage("Student not found in database.", "error");
+                snapClass.forEach(doc => {
+                    const data = doc.data();
+                    const dbRoll = String(data.roll || "").trim().toLowerCase();
+                    const dbName = String(data.name || "").trim().toLowerCase();
+                    const qrRoll = String(studentRoll || "").trim().toLowerCase();
+                    const qrName = String(studentName || "").trim().toLowerCase();
+
+                    // রোল মিললে বা নাম মিললে সেটাকে সিলেক্ট করবে
+                    if (qrRoll && dbRoll === qrRoll) {
+                        targetDoc = doc;
+                        studentData = data;
+                    } else if (qrName && dbName === qrName) {
+                        targetDoc = doc;
+                        studentData = data;
+                    }
+                });
+            }
+
+            if (!targetDoc) {
+                showMessage(`Student not found in database.`, "error");
                 scanLocked = false;
                 return;
             }
 
-            const studentDoc = studentSnap.docs[0];
-            const studentData = studentDoc.data();
             const today = getLocalDate();
-
-            // student-attendance-dashboard.html এর ফরম্যাট অনুযায়ী ডকুমেন্ট আইডি
-            const attendanceRef = doc(db, "attendance", loggedInTeacher.schoolId, today, "student_" + studentDoc.id);
+            const attendanceRef = doc(db, "attendance", loggedInTeacher.schoolId, today, "student_" + targetDoc.id);
             const attSnap = await getDoc(attendanceRef);
 
             if (attSnap.exists()) {
-                showMessage(`Student ${studentName} is already marked Present today.`, "info");
+                showMessage(`Student ${studentData.name} is already marked Present today.`, "info");
                 scanLocked = false;
                 return;
             }
 
-            // স্টুডেন্টের এন্ট্রি সেভ করা
+            // স্টুডেন্টের এন্ট্রি ফায়ারবেসে সেভ করা
             await setDoc(attendanceRef, {
                 studentId: studentData.studentId || "",
-                studentDocId: studentDoc.id,
-                studentName: studentName,
-                studentClass: studentClass,
-                roll: studentRoll,
+                studentDocId: targetDoc.id,
+                studentName: studentData.name || studentName,
+                studentClass: studentData.studentClass || studentClass,
+                roll: studentData.roll || studentRoll,
                 schoolId: loggedInTeacher.schoolId,
                 ownerId: loggedInTeacher.ownerId,
                 date: today,
@@ -768,16 +807,16 @@
                 attendanceStatus: "STUDENT_ENTRY"
             });
 
-            showMessage(`Student ${studentName} entry marked successfully by Teacher ${loggedInTeacher.name}!`, "success");
+            showMessage(`Student ${studentData.name} entry marked successfully by Teacher ${loggedInTeacher.name}!`, "success");
 
             await stopScanner();
             setTimeout(() => {
-                window.location.href = "student-attendance-dashboard.html"; // স্টুডেন্ট অ্যাটেনডেন্স ড্যাশবোর্ডে রিডাইরেক্ট
+                window.location.href = "student-attendance-dashboard.html"; 
             }, 2000);
 
         } catch (error) {
             console.error("QR Scan Error:", error);
-            showMessage("Invalid QR or attendance could not be processed", "error");
+            showMessage("Error processing QR code. Check browser console.", "error");
             scanLocked = false;
         }
     }
